@@ -1,4 +1,6 @@
 # mips default CPU ISAs
+config BR2_MIPS_CPU_MIPS1
+	bool
 config BR2_MIPS_CPU_MIPS32
 	bool
 	select BR2_MIPS_NAN_LEGACY
@@ -141,6 +143,10 @@ config BR2_mips_p6600
 	depends on BR2_ARCH_IS_64
 	select BR2_ARCH_HAS_NO_TOOLCHAIN_BUILDROOT
 	select BR2_MIPS_CPU_MIPS64R6
+config BR2_mips_rlx4181
+	bool "Realtek Lexra RLX4181"
+	depends on !BR2_ARCH_IS_64
+	select BR2_MIPS_CPU_MIPS1
 endchoice
 
 choice
@@ -240,6 +246,7 @@ config BR2_ENDIAN
 	default "BIG"		if BR2_mips || BR2_mips64
 
 config BR2_GCC_TARGET_ARCH
+	default "mips1"		if BR2_mips_1
 	default "mips32"	if BR2_mips_32
 	default "mips32r2"	if BR2_mips_32r2
 	default "mips32r3"	if BR2_mips_32r3
@@ -259,6 +266,7 @@ config BR2_GCC_TARGET_ARCH
 	default "octeon2"	if BR2_mips_octeon2
 	default "octeon3"	if BR2_mips_octeon3
 	default "p6600"		if BR2_mips_p6600
+	default "rlx4181"	if BR2_mips_rlx4181
 
 config BR2_MIPS_OABI32
 	bool
