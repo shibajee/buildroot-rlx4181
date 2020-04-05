@@ -1,0 +1,285 @@
+// SPDX-License-Identifier: GPL-2.0
+--- a/bfd/archures.c
++++ b/bfd/archures.c
+@@ -185,6 +185,7 @@
+ .#define bfd_mach_mips_octeon3		6503
+ .#define bfd_mach_mips_xlr		887682	 {* decimal 'XLR'.  *}
+ .#define bfd_mach_mips_interaptiv_mr2	736550	 {* decimal 'IA2'.  *}
++.#define bfd_mach_mips_rlx4181		104181
+ .#define bfd_mach_mipsisa32		32
+ .#define bfd_mach_mipsisa32r2		33
+ .#define bfd_mach_mipsisa32r3		34
+--- a/bfd/bfd-in2.h
++++ b/bfd/bfd-in2.h
+@@ -2125,6 +2125,7 @@
+ #define bfd_mach_mips_octeon3          6503
+ #define bfd_mach_mips_xlr              887682   /* decimal 'XLR'.  */
+ #define bfd_mach_mips_interaptiv_mr2   736550   /* decimal 'IA2'.  */
++#define bfd_mach_mips_rlx4181          104181
+ #define bfd_mach_mipsisa32             32
+ #define bfd_mach_mipsisa32r2           33
+ #define bfd_mach_mipsisa32r3           34
+--- a/bfd/cpu-mips.c
++++ b/bfd/cpu-mips.c
+@@ -107,6 +107,7 @@
+   I_mipsocteon3,
+   I_xlr,
+   I_interaptiv_mr2,
++  I_rlx4181,
+   I_micromips
+ };
+ 
+@@ -162,6 +163,7 @@
+   N (64, 64, bfd_mach_mips_xlr, "mips:xlr",	  FALSE, NN(I_xlr)),
+   N (32, 32, bfd_mach_mips_interaptiv_mr2, "mips:interaptiv-mr2", FALSE,
+      NN(I_interaptiv_mr2)),
++  N (32, 32, bfd_mach_mips_rlx4181, "mips:rlx4181", FALSE, NN(I_rlx4181)),
+   N (64, 64, bfd_mach_mips_micromips,"mips:micromips",FALSE,0)
+ };
+ 
+--- a/bfd/elfxx-mips.c
++++ b/bfd/elfxx-mips.c
+@@ -6999,6 +6999,9 @@
+     case E_MIPS_MACH_IAMR2:
+       return bfd_mach_mips_interaptiv_mr2;
+ 
++    case E_MIPS_MACH_RLX4181:
++      return bfd_mach_mips_rlx4181;
++
+     default:
+       switch (flags & EF_MIPS_ARCH)
+ 	{
+@@ -12391,6 +12394,10 @@
+     case bfd_mach_mipsisa64r6:
+       val = E_MIPS_ARCH_64R6;
+       break;
++
++    case bfd_mach_mips_rlx4181:
++      val = E_MIPS_ARCH_1 | E_MIPS_MACH_RLX4181;
++      break;
+     }
+   elf_elfheader (abfd)->e_flags &= ~(EF_MIPS_ARCH | EF_MIPS_MACH);
+   elf_elfheader (abfd)->e_flags |= val;
+@@ -14453,6 +14460,7 @@
+   { bfd_mach_mips4010, bfd_mach_mips6000 },
+ 
+   /* MIPS I extensions.  */
++  { bfd_mach_mips_rlx4181, bfd_mach_mips3000 },
+   { bfd_mach_mips6000, bfd_mach_mips3000 },
+   { bfd_mach_mips3900, bfd_mach_mips3000 }
+ };
+@@ -14510,6 +14518,7 @@
+     case AFL_EXT_OCTEONP:     return bfd_mach_mips_octeonp;
+     case AFL_EXT_OCTEON2:     return bfd_mach_mips_octeon2;
+     case AFL_EXT_XLR:	      return bfd_mach_mips_xlr;
++    case AFL_EXT_RLX4181:     return bfd_mach_mips_rlx4181;
+     default:		      return bfd_mach_mips3000;
+     }
+ }
+@@ -14541,6 +14550,7 @@
+     case bfd_mach_mips_xlr:	    return AFL_EXT_XLR;
+     case bfd_mach_mips_interaptiv_mr2:
+       return AFL_EXT_INTERAPTIV_MR2;
++    case bfd_mach_mips_rlx4181:	    return AFL_EXT_RLX4181;
+     default:			    return 0;
+     }
+ }
+@@ -16154,6 +16164,9 @@
+     case AFL_EXT_INTERAPTIV_MR2:
+       fputs ("Imagination interAptiv MR2", file);
+       break;
++    case AFL_EXT_RLX4181:
++      fputs ("Realtek Lexra RLX4181", file);
++      break;
+     default:
+       fprintf (file, "%s (%d)", _("Unknown"), isa_ext);
+       break;
+--- a/binutils/readelf.c
++++ b/binutils/readelf.c
+@@ -3446,6 +3446,7 @@
+ 	    case E_MIPS_MACH_OCTEON3: strcat (buf, ", octeon3"); break;
+ 	    case E_MIPS_MACH_XLR:  strcat (buf, ", xlr"); break;
+ 	    case E_MIPS_MACH_IAMR2:  strcat (buf, ", interaptiv-mr2"); break;
++	    case E_MIPS_MACH_RLX4181:  strcat (buf, ", rlx4181"); break;
+ 	    case 0:
+ 	    /* We simply ignore the field in this case to avoid confusion:
+ 	       MIPS ELF does not specify EF_MIPS_MACH, it is a GNU
+@@ -16196,6 +16197,9 @@
+     case AFL_EXT_INTERAPTIV_MR2:
+       fputs ("Imagination interAptiv MR2", stdout);
+       break;
++    case AFL_EXT_RLX4181:
++      fputs ("Realtek Lexra RLX4181", stdout);
++      break;
+     default:
+       fprintf (stdout, "%s (%d)", _("Unknown"), isa_ext);
+     }
+--- a/gas/config/tc-mips.c
++++ b/gas/config/tc-mips.c
+@@ -19995,6 +19995,7 @@
+   { "r3000",          0, 0,			ISA_MIPS1,    CPU_R3000 },
+   { "r2000",          0, 0,			ISA_MIPS1,    CPU_R3000 },
+   { "r3900",          0, 0,			ISA_MIPS1,    CPU_R3900 },
++  { "rlx4181",        0, 0,			ISA_MIPS1,    CPU_RLX4181 },
+ 
+   /* MIPS II */
+   { "r6000",          0, 0,			ISA_MIPS2,    CPU_R6000 },
+--- a/include/elf/mips.h
++++ b/include/elf/mips.h
+@@ -302,6 +302,7 @@
+ #define E_MIPS_MACH_GS464       0x00A20000
+ #define E_MIPS_MACH_GS464E	0x00A30000
+ #define E_MIPS_MACH_GS264E	0x00A40000
++#define E_MIPS_MACH_RLX4181	0x00A50000
+ 
+ /* Processor specific section indices.  These sections do not actually
+    exist.  Symbols with a st_shndx field corresponding to one of these
+@@ -1273,6 +1274,7 @@
+ #define AFL_EXT_LOONGSON_2F  18  /* ST Microelectronics Loongson 2F.  */
+ #define AFL_EXT_OCTEON3      19  /* Cavium Networks Octeon3.  */
+ #define AFL_EXT_INTERAPTIV_MR2 20  /* Imagination interAptiv MR2.  */
++#define AFL_EXT_RLX4181      21  /* Realtek Lexra RLX4181.  */
+ 
+ /* Masks for the flags1 word of an ABI flags structure.  */
+ #define AFL_FLAGS1_ODDSPREG   1	 /* Uses odd single-precision registers.  */
+--- a/include/opcode/mips.h
++++ b/include/opcode/mips.h
+@@ -1220,7 +1220,7 @@
+ #undef ISAF
+ 
+ /* Masks used for Chip specific instructions.  */
+-#define INSN_CHIP_MASK		  0xc7ff4f60
++#define INSN_CHIP_MASK		  0xcfff4f60
+ 
+ /* Cavium Networks Octeon instructions.  */
+ #define INSN_OCTEON		  0x00000800
+@@ -1260,6 +1260,8 @@
+ #define INSN_XLR                 0x00000020
+ /* Imagination interAptiv MR2.  */
+ #define INSN_INTERAPTIV_MR2	  0x04000000
++/* Realtek Lexra RLX4181.  */
++#define INSN_RLX4181               0x08000000
+ 
+ /* DSP ASE */
+ #define ASE_DSP			0x00000001
+@@ -1384,6 +1386,7 @@
+ #define CPU_OCTEON3	6503
+ #define CPU_XLR     	887682   	/* decimal 'XLR'   */
+ #define CPU_INTERAPTIV_MR2 736550	/* decimal 'IA2'  */
++#define CPU_RLX4181		104181
+ 
+ /* Return true if the given CPU is included in INSN_* mask MASK.  */
+ 
+@@ -1454,6 +1457,9 @@
+     case CPU_INTERAPTIV_MR2:
+       return (mask & INSN_INTERAPTIV_MR2) != 0;
+ 
++    case CPU_RLX4181:
++      return (mask & INSN_RLX4181) != 0;
++
+     case CPU_MIPS32R6:
+       return (mask & INSN_ISA_MASK) == INSN_ISA32R6;
+ 
+--- a/opcodes/mips-dis.c
++++ b/opcodes/mips-dis.c
+@@ -133,6 +133,18 @@
+   "$28",          "$29",          "$30",          "$31",
+ };
+ 
++static const char * const mips_cp0_names_rlx4181[32] =
++{
++  "c0_index",     "c0_random",    "c0_entrylo",   "$3",
++  "c0_context",   "$5",           "c0_wired",     "$7",
++  "c0_badvaddr",  "c0_entryhi",   "$10",          "$11",
++  "c0_sr",        "c0_cause",     "c0_epc",       "c0_prid",
++  "$16",          "$17",          "$18",          "$19",
++  "c0_cctl",      "$21",          "$22",          "$23",
++  "$24",          "$25",          "$26",          "$27",
++  "$28",          "$29",          "$30",          "$31",
++};
++
+ static const char * const mips_cp0_names_r4000[32] =
+ {
+   "c0_index",     "c0_random",    "c0_entrylo0",  "c0_entrylo1",
+@@ -458,6 +470,9 @@
+   { "r3900",	1, bfd_mach_mips3900, CPU_R3900, ISA_MIPS1, 0,
+     mips_cp0_names_numeric, NULL, 0, mips_cp1_names_numeric,
+     mips_hwr_names_numeric },
++  { "rlx4181",	1, bfd_mach_mips_rlx4181, CPU_RLX4181, ISA_MIPS1, 0,
++    mips_cp0_names_rlx4181, NULL, 0, mips_cp1_names_numeric,
++    mips_hwr_names_numeric },
+   { "r4000",	1, bfd_mach_mips4000, CPU_R4000, ISA_MIPS3, 0,
+     mips_cp0_names_r4000, NULL, 0, mips_cp1_names_numeric,
+     mips_hwr_names_numeric },
+--- a/opcodes/mips-opc.c
++++ b/opcodes/mips-opc.c
+@@ -328,6 +328,7 @@
+ #define IOCT3	INSN_OCTEON3
+ #define XLR     INSN_XLR
+ #define IAMR2	INSN_INTERAPTIV_MR2
++#define RLX4181 INSN_RLX4181
+ #define IVIRT	ASE_VIRT
+ #define IVIRT64	ASE_VIRT64
+ 
+@@ -1328,12 +1329,12 @@
+ {"lwc2",		"E,A(b)",	0,    (int) M_LWC2_AB,	INSN_MACRO,		0,		I1,		0,	IOCT|IOCTP|IOCT2|EE },
+ {"lwc3",		"E,o(b)",	0xcc000000, 0xfc000000,	RD_3|WR_CC|CLD,		0,		I1,		0,	IOCT|IOCTP|IOCT2|EE|I37 },
+ {"lwc3",		"E,A(b)",	0,    (int) M_LWC3_AB,	INSN_MACRO,		0,		I1,		0,	IOCT|IOCTP|IOCT2|EE|I37 },
+-{"lwl",			"t,o(b)",	0x88000000, 0xfc000000,	WR_1|RD_3|LM,		0,		I1,		0,	I37 },
+-{"lwl",			"t,A(b)",	0,    (int) M_LWL_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
++{"lwl",			"t,o(b)",	0x88000000, 0xfc000000,	WR_1|RD_3|LM,		0,		I1,		0,	I37|RLX4181 },
++{"lwl",			"t,A(b)",	0,    (int) M_LWL_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
+ {"lcache",		"t,o(b)",	0x88000000, 0xfc000000,	WR_1|RD_3|LM,		0,		I2,		0,	I37 }, /* same */
+ {"lcache",		"t,A(b)",	0,    (int) M_LWL_AB,	INSN_MACRO,		0,		I2,		0,	I37 }, /* as lwl */
+-{"lwr",			"t,o(b)",	0x98000000, 0xfc000000,	WR_1|RD_3|LM,		0,		I1,		0,	I37 },
+-{"lwr",			"t,A(b)",	0,    (int) M_LWR_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
++{"lwr",			"t,o(b)",	0x98000000, 0xfc000000,	WR_1|RD_3|LM,		0,		I1,		0,	I37|RLX4181 },
++{"lwr",			"t,A(b)",	0,    (int) M_LWR_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
+ {"flush",		"t,o(b)",	0x98000000, 0xfc000000,	WR_1|RD_3|LM,		0,		I2,		0,	I37 }, /* same */
+ {"flush",		"t,A(b)",	0,    (int) M_LWR_AB,	INSN_MACRO,		0,		I2,		0,	I37 }, /* as lwr */
+ {"fork",		"d,s,t",	0x7c000008, 0xfc0007ff, WR_1|RD_2|RD_3|TRAP,	0,		0,		MT32,	0 },
+@@ -1994,12 +1995,12 @@
+ {"swc2",		"E,A(b)",	0,    (int) M_SWC2_AB,	INSN_MACRO,		0,		I1,		0,	IOCT|IOCTP|IOCT2|EE },
+ {"swc3",		"E,o(b)",	0xec000000, 0xfc000000,	RD_3|RD_C3|SM,		0,		I1,		0,	IOCT|IOCTP|IOCT2|EE|I37 },
+ {"swc3",		"E,A(b)",	0,    (int) M_SWC3_AB,	INSN_MACRO,		0,		I1,		0,	IOCT|IOCTP|IOCT2|EE|I37 },
+-{"swl",			"t,o(b)",	0xa8000000, 0xfc000000,	RD_1|RD_3|SM,		0,		I1,		0,	I37 },
+-{"swl",			"t,A(b)",	0,    (int) M_SWL_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
++{"swl",			"t,o(b)",	0xa8000000, 0xfc000000,	RD_1|RD_3|SM,		0,		I1,		0,	I37|RLX4181 },
++{"swl",			"t,A(b)",	0,    (int) M_SWL_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
+ {"scache",		"t,o(b)",	0xa8000000, 0xfc000000,	RD_1|RD_3,		0,		I2,		0,	I37 }, /* same */
+ {"scache",		"t,A(b)",	0,    (int) M_SWL_AB,	INSN_MACRO,		0,		I2,		0,	I37 }, /* as swl */
+-{"swr",			"t,o(b)",	0xb8000000, 0xfc000000,	RD_1|RD_3|SM,		0,		I1,		0,	I37 },
+-{"swr",			"t,A(b)",	0,    (int) M_SWR_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
++{"swr",			"t,o(b)",	0xb8000000, 0xfc000000,	RD_1|RD_3|SM,		0,		I1,		0,	I37|RLX4181 },
++{"swr",			"t,A(b)",	0,    (int) M_SWR_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
+ {"invalidate",		"t,o(b)",	0xb8000000, 0xfc000000,	RD_1|RD_3,		0,		I2,		0,	I37 }, /* same */
+ {"invalidate",		"t,A(b)",	0,    (int) M_SWR_AB,	INSN_MACRO,		0,		I2,		0,	I37 }, /* as swr */
+ {"swxc1",		"S,t(b)",	0x4c000008, 0xfc0007ff, RD_1|RD_2|RD_3|SM|FP_S,	0,		I4_33,		0,	I37 },
+@@ -2071,12 +2072,12 @@
+ {"trunc.w.s",		"D,S,x",	0x4600000d, 0xffff003f,	WR_1|RD_2|FP_S,		0,		I2,		0,	EE },
+ {"trunc.w.s",		"D,S,t",	0,    (int) M_TRUNCWS,	INSN_MACRO,		INSN2_M_FP_S,	I1,		0,	EE },
+ {"uld",			"t,A(b)",	0,    (int) M_ULD_AB,	INSN_MACRO,		0,		I3,		0,	I69 },
+-{"ulh",			"t,A(b)",	0,    (int) M_ULH_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
+-{"ulhu",		"t,A(b)",	0,    (int) M_ULHU_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
+-{"ulw",			"t,A(b)",	0,    (int) M_ULW_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
++{"ulh",			"t,A(b)",	0,    (int) M_ULH_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
++{"ulhu",		"t,A(b)",	0,    (int) M_ULHU_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
++{"ulw",			"t,A(b)",	0,    (int) M_ULW_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
+ {"usd",			"t,A(b)",	0,    (int) M_USD_AB,	INSN_MACRO,		0,		I3,		0,	I69 },
+-{"ush",			"t,A(b)",	0,    (int) M_USH_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
+-{"usw",			"t,A(b)",	0,    (int) M_USW_AB,	INSN_MACRO,		0,		I1,		0,	I37 },
++{"ush",			"t,A(b)",	0,    (int) M_USH_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
++{"usw",			"t,A(b)",	0,    (int) M_USW_AB,	INSN_MACRO,		0,		I1,		0,	I37|RLX4181 },
+ {"v3mulu",		"d,v,t",	0x70000011, 0xfc0007ff, WR_1|RD_2|RD_3,		0,		IOCT,		0,	0 },
+ {"vmm0",		"d,v,t",	0x70000010, 0xfc0007ff, WR_1|RD_2|RD_3,		0,		IOCT,		0,	0 },
+ {"vmulu",		"d,v,t",	0x7000000f, 0xfc0007ff, WR_1|RD_2|RD_3,		0,		IOCT,		0,	0 },
+@@ -3202,6 +3203,9 @@
+ {"restore",		"-m",		0x7000001f, 0xfc00603f, WR_31|NODS,		MOD_SP,		IAMR2,		0,	0 },
+ {"save",		"-m",		0x7000201f, 0xfc00603f, NODS,			RD_31|MOD_SP,	IAMR2,		0,	0 },
+ 
++/* Realtek Lexra RLX4181 instruction extensions.  */
++{"sleep",		"",		0x42000038, 0xffffffff, 0,			0,		RLX4181,		0,	0 },
++
+ /* User Defined Instruction.  */
+ {"udi0",		"s,t,d,+1",	0x70000010, 0xfc00003f,	UDI,			0,		I33,		0,	0 },
+ {"udi0",		"s,t,+2",	0x70000010, 0xfc00003f,	UDI,			0,		I33,		0,	0 },
